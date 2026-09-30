@@ -1,0 +1,14 @@
+{
+  "name": "mqtt-broker-local",
+  "version": "1.0.0",
+  "description": "Broker MQTT local, ecoute TCP",
+  "main": "broker.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node broker.js"
+  },
+  "dependencies": {
+    "aedes": "^0.51.3",
+    "express": "^5.2.1"
+  }
+}

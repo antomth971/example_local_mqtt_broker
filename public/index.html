@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title>MQTT Broker Local - Publisher</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.3rem; }
+  label { display: block; margin-top: 0.9rem; font-weight: 600; font-size: 0.9rem; }
+  input, select, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; font-family: monospace; }
+  textarea { height: 100px; }
+  button { margin-top: 1rem; padding: 0.6rem 1.2rem; cursor: pointer; }
+  .row { display: flex; gap: 1rem; }
+  .row > div { flex: 1; }
+  #result { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; }
+  .ok { background: #e6f6e6; border: 1px solid #8ec98e; }
+  .err { background: #fbe6e6; border: 1px solid #e08a8a; }
+  .presets button { margin: 0.25rem 0.5rem 0 0; padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+  <h1>MQTT Broker Local &mdash; Publier un message</h1>
+
+  <div class="presets">
+    <strong>Presets rapides :</strong><br />
+    <button type="button" onclick="applyPreset('dialog')">Legacy dialog</button>
+    <button type="button" onclick="applyPreset('rpc')">JSON-RPC app.open</button>
+  </div>
+
+  <form id="publishForm">
+    <label for="topic">Topic</label>
+    <input id="topic" name="topic" value="remote_trigger/TESTVIN123" required />
+
+    <div class="row">
+      <div>
+        <label for="qos">QoS</label>
+        <select id="qos" name="qos">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      </div>
+      <div>
+        <label for="retain">Retain</label>
+        <select id="retain" name="retain">
+          <option value="false">false</option>
+          <option value="true">true</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="payload">Payload (JSON ou texte brut)</label>
+    <textarea id="payload" name="payload">{"method":"dialog"}</textarea>
+
+    <button type="submit">Publier</button>
+  </form>
+
+  <div id="result" style="display:none"></div>
+
+  <script>
+    const presets = {
+      dialog: { topic: 'remote_trigger/TESTVIN123', payload: '{"method":"dialog"}' },
+      rpc: { topic: 'remote_trigger/TESTVIN123', payload: '{"method":"app.open","params":{"uri":"/#iviqr"}}' },
+    };
+
+    function applyPreset(name) {
+      const p = presets[name];
+      document.getElementById('topic').value = p.topic;
+      document.getElementById('payload').value = p.payload;
+    }
+
+    document.getElementById('publishForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const topic = document.getElementById('topic').value;
+      const qos = Number(document.getElementById('qos').value);
+      const retain = document.getElementById('retain').value === 'true';
+      const rawPayload = document.getElementById('payload').value;
+
+      let payload = rawPayload;
+      try {
+        payload = JSON.parse(rawPayload);
+      } catch {
+        // pas du JSON valide, on envoie tel quel comme texte
+      }
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+      resultEl.className = '';
+      resultEl.textContent = 'Envoi...';
+
+      try {
+        const res = await fetch('/api/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, payload, qos, retain }),
+        });
+        const data = await res.json();
+        resultEl.className = res.ok ? 'ok' : 'err';
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        resultEl.className = 'err';
+        resultEl.textContent = 'Erreur reseau: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
